@@ -49,6 +49,13 @@ services:
     restart: unless-stopped
     networks:
       - flash-sale-network
+    # Add volume mapping for development
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - FAST_REFRESH=true
 
 volumes:
   redis_data:

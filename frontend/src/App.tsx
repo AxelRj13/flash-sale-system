@@ -4,7 +4,7 @@ import { FlashSaleStatus, UserPurchaseStatus } from './types';
 import './App.css';
 
 // Sample flash sale ID - in a real app this would come from a list or URL parameter
-const FLASH_SALE_ID = 'sample-sale-1';
+const FLASH_SALE_ID = 'b666cfd3-39af-4598-9132-64d676a0f79e';
 
 function App() {
   const [flashSaleStatus, setFlashSaleStatus] = useState<FlashSaleStatus | null>(null);

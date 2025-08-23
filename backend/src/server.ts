@@ -41,11 +41,15 @@ async function initializeSampleData() {
     const existingFlashSale = await redisService.get('flashsale:sample-sale-1');
     
     if (!existingFlashSale) {
-      // Create a sample flash sale that starts 1 minute from now
+      // Create a sample flash sale that starts 1 minute from now (GMT+7)
       const now = new Date();
-      const startTime = new Date(now.getTime() + 60 * 1000); // 1 minute from now
-      const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
       
+      // Create dates in GMT+7 timezone (Asia/Bangkok, Asia/Jakarta, Asia/Ho_Chi_Minh)
+      const nowInGMT7 = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+      
+      const startTime = new Date(nowInGMT7.getTime() + 60 * 1000); // 1 minute from now in GMT+7
+      const endTime = new Date(nowInGMT7.getTime() + 60 * 60 * 1000); // 1 hour from now in GMT+7
+
       await flashSaleService.createFlashSale({
         productName: 'Limited Edition Gaming Headset',
         totalStock: 100,
@@ -55,8 +59,8 @@ async function initializeSampleData() {
       });
       
       console.log('Sample flash sale created successfully');
-      console.log(`Sale starts at: ${startTime.toISOString()}`);
-      console.log(`Sale ends at: ${endTime.toISOString()}`);
+      console.log(`Sale starts at: ${startTime.toISOString()} (GMT+7: ${startTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })})`);
+      console.log(`Sale ends at: ${endTime.toISOString()} (GMT+7: ${endTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })})`);
     }
   } catch (error) {
     console.error('Error initializing sample data:', error);

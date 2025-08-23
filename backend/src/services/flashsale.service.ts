@@ -12,8 +12,9 @@ export class FlashSaleService {
   async createFlashSale(flashSale: Omit<FlashSale, 'id' | 'status' | 'remainingStock'>): Promise<FlashSale> {
     const id = uuidv4();
     const now = new Date();
-    
     let status: FlashSale['status'];
+    console.log(`create start ${flashSale.startTime}`);
+    console.log(`create end ${flashSale.endTime}`);
     if (now < flashSale.startTime) {
       status = 'upcoming';
     } else if (now >= flashSale.startTime && now <= flashSale.endTime) {
@@ -21,6 +22,8 @@ export class FlashSaleService {
     } else {
       status = 'ended';
     }
+
+    console.log(status);
 
     const newFlashSale: FlashSale = {
       ...flashSale,
@@ -37,6 +40,9 @@ export class FlashSaleService {
 
     // Initialize stock counter for atomic operations
     await this.redisService.set(`stock:${id}`, flashSale.totalStock.toString());
+
+    // Add flash sale ID to the index list
+    await this.addFlashSaleToIndex(id);
 
     return newFlashSale;
   }
@@ -163,14 +169,38 @@ export class FlashSaleService {
   }
 
   async getAllFlashSales(): Promise<FlashSale[]> {
-    // This is a simplified implementation
-    // In a real scenario, you'd want to maintain a list of flash sale IDs
-    return [];
+    try {
+      // Get all flash sale IDs from the index set
+      const flashSaleIds = await this.redisService.get('flashsale:ids');
+      
+      if (!flashSaleIds) {
+        return [];
+      }
+
+      const ids: string[] = JSON.parse(flashSaleIds);
+      const flashSales: FlashSale[] = [];
+
+      // Fetch each flash sale by ID
+      for (const id of ids) {
+        const flashSale = await this.getFlashSaleById(id);
+        if (flashSale) {
+          flashSales.push(flashSale);
+        }
+      }
+
+      // Sort by start time (newest first)
+      flashSales.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+      return flashSales;
+    } catch (error) {
+      console.error('Error fetching all flash sales:', error);
+      return [];
+    }
   }
 
   private calculateStatus(flashSale: FlashSale): FlashSale['status'] {
     const now = new Date();
-    
+
     if (flashSale.remainingStock <= 0) {
       return 'sold_out';
     }
@@ -181,6 +211,63 @@ export class FlashSaleService {
       return 'active';
     } else {
       return 'ended';
+    }
+  }
+
+  private async addFlashSaleToIndex(flashSaleId: string): Promise<void> {
+    try {
+      // Get current list of flash sale IDs
+      const idsData = await this.redisService.get('flashsale:ids');
+      let ids: string[] = [];
+      
+      if (idsData) {
+        ids = JSON.parse(idsData);
+      }
+      
+      // Add new ID if it doesn't already exist
+      if (!ids.includes(flashSaleId)) {
+        ids.push(flashSaleId);
+        await this.redisService.set('flashsale:ids', JSON.stringify(ids));
+      }
+    } catch (error) {
+      console.error('Error adding flash sale to index:', error);
+    }
+  }
+
+  private async removeFlashSaleFromIndex(flashSaleId: string): Promise<void> {
+    try {
+      // Get current list of flash sale IDs
+      const idsData = await this.redisService.get('flashsale:ids');
+      
+      if (idsData) {
+        let ids: string[] = JSON.parse(idsData);
+        ids = ids.filter(id => id !== flashSaleId);
+        await this.redisService.set('flashsale:ids', JSON.stringify(ids));
+      }
+    } catch (error) {
+      console.error('Error removing flash sale from index:', error);
+    }
+  }
+
+  // Public method to delete a flash sale completely
+  async deleteFlashSale(flashSaleId: string): Promise<boolean> {
+    try {
+      // Remove flash sale data
+      await this.redisService.del(`flashsale:${flashSaleId}`);
+      
+      // Remove stock counter
+      await this.redisService.del(`stock:${flashSaleId}`);
+      
+      // Remove from index
+      await this.removeFlashSaleFromIndex(flashSaleId);
+      
+      // Note: This doesn't clean up purchase records for simplicity
+      // In production, you might want to handle this differently
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting flash sale:', error);
+      return false;
     }
   }
 }
