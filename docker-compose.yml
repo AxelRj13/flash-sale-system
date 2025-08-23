@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Redis Service
+  redis:
+    image: redis:7-alpine
+    container_name: flash-sale-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - flash-sale-network
+
+  # Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: flash-sale-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3001
+    depends_on:
+      - redis
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - flash-sale-network
+
+  # Frontend Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: flash-sale-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - flash-sale-network
+
+volumes:
+  redis_data:
+
+networks:
+  flash-sale-network:
+    driver: bridge
