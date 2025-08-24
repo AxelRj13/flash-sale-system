@@ -109,31 +109,33 @@ export class FlashSaleService {
       };
     }
 
-    // Check if user has already purchased
-    const userPurchaseKey = `user_purchase:${request.flashSaleId}:${request.userId}`;
-    const existingPurchase = await this.redisService.get(userPurchaseKey);
+    // Create purchase ID upfront
+    const purchaseId = uuidv4();
     
-    if (existingPurchase) {
-      return {
-        success: false,
-        message: 'You have already purchased this item'
-      };
-    }
-
-    // Attempt to decrement stock atomically
+    // Atomic purchase attempt - prevents race conditions
     const stockKey = `stock:${request.flashSaleId}`;
-    const newStock = await this.redisService.decrementStock(stockKey);
+    const userPurchaseKey = `user_purchase:${request.flashSaleId}:${request.userId}`;
     
-    if (newStock === null) {
+    const purchaseResult = await this.redisService.atomicPurchaseAttempt(
+      stockKey, 
+      userPurchaseKey, 
+      purchaseId
+    );
+    
+    if (!purchaseResult.success) {
+      const messages = {
+        'already_purchased': 'You have already purchased this item',
+        'sold_out': 'Item is sold out'
+      };
       return {
         success: false,
-        message: 'Item is sold out'
+        message: messages[purchaseResult.reason as keyof typeof messages] || 'Purchase failed'
       };
     }
 
     // Create purchase record
     const purchase: Purchase = {
-      id: uuidv4(),
+      id: purchaseId,
       userId: request.userId,
       flashSaleId: request.flashSaleId,
       quantity: 1,
@@ -141,19 +143,18 @@ export class FlashSaleService {
       status: 'confirmed'
     };
 
-    // Store purchase record and mark user as purchased
+    // Store purchase record
     await this.redisService.set(`purchase:${purchase.id}`, JSON.stringify(purchase));
-    await this.redisService.set(userPurchaseKey, purchase.id);
 
     // Update flash sale remaining stock in the main record
-    flashSale.remainingStock = newStock;
+    flashSale.remainingStock = purchaseResult.newStock!;
     await this.redisService.set(`flashsale:${request.flashSaleId}`, JSON.stringify(flashSale));
 
     return {
       success: true,
       message: 'Purchase successful!',
       purchaseId: purchase.id,
-      remainingStock: newStock
+      remainingStock: purchaseResult.newStock!
     };
   }
 

@@ -100,6 +100,41 @@ export class RedisService {
     }) as number | null;
   }
 
+  // Atomic purchase operation to prevent race conditions
+  async atomicPurchaseAttempt(stockKey: string, userPurchaseKey: string, purchaseId: string): Promise<{ success: boolean; newStock?: number; reason?: string }> {
+    const script = `
+      -- Check if user already purchased
+      local existingPurchase = redis.call('GET', KEYS[2])
+      if existingPurchase then
+        return {0, -1, 'already_purchased'}
+      end
+      
+      -- Check and decrement stock atomically
+      local currentStock = redis.call('GET', KEYS[1])
+      if not currentStock or tonumber(currentStock) <= 0 then
+        return {0, -1, 'sold_out'}
+      end
+      
+      -- Atomically decrement stock and mark user purchase
+      local newStock = redis.call('DECR', KEYS[1])
+      redis.call('SET', KEYS[2], KEYS[3])
+      
+      return {1, newStock, 'success'}
+    `;
+    
+    const result = await this.client.eval(script, {
+      keys: [stockKey, userPurchaseKey, purchaseId]
+    }) as [number, number, string];
+    
+    const [success, newStock, reason] = result;
+    
+    if (success === 1) {
+      return { success: true, newStock };
+    } else {
+      return { success: false, reason };
+    }
+  }
+
   getClient(): RedisClientType {
     return this.client;
   }

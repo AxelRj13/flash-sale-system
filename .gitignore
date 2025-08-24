@@ -148,3 +148,5 @@ jest_0
 
 # Storybook build outputs
 storybook-static
+
+load-test-result.txt

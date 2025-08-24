@@ -205,12 +205,8 @@ curl http://localhost:3001/api/flashsale/user/user123/purchase/sample-sale-1
 
 Run tests for backend:
 ```bash
-npm run test:backend
-```
-
-Run tests for frontend:
-```bash
-npm run test:frontend
+cd backend/
+npm test
 ```
 
 ## Common Issues & Solutions
@@ -247,6 +243,15 @@ The system automatically creates a sample flash sale for testing:
 - **Product**: X
 - **Stock**: 100 items
 - **Duration**: 1 hour from startup
-- **Start**: 1 minute after server startup
+- **Start**: immediately
 
 This allows immediate testing without manual configuration.
+
+## Load Test
+Here's the step-to-step to run the load test:
+1. Ensure the script already exist in the project directory, named **load-test.sh**
+2. In this script, there's a number of looping that can be configured as needed. Just change the number on line 20 and 36 (e.g. for i in {1..**N**}) where N is the desired number of request to be tested.
+3. On line 24, the **flashSaleId** needs to be updated as well to use the current active flash sale record. This value can be obtained through **/getLatestActiveFlashSale** endpoint
+4. Navigate to **backend/src/server.ts** to update the stock number to comply with the number of test. Look up for **totalStock** occurrence and change it from there then re-build & re-run the backend service.
+5. After that, the load test can be done by inputting command on terminal: ```.\load-test.sh```
+6. The result would be printed out in **load-test-result.txt** on the same directory

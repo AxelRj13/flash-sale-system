@@ -67,7 +67,7 @@ async function initializeSampleData() {
 
     const newFlashSale = await flashSaleService.createFlashSale({
       productName: 'LIMITED EDITION ITEM',
-      totalStock: 50,
+      totalStock: 10000, // this can be changed as needed (e.g. to load test)
       startTime,
       endTime,
       maxPurchasePerUser: 1 // currently, changing this value won't affect anything. One user only allowed to purchase 1 product
