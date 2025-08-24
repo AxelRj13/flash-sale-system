@@ -37,41 +37,41 @@ async function initializeSampleData() {
     
     const flashSaleService = new FlashSaleService(redisService);
     
+    // Display server timezone information
+    const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timezoneOffset = -new Date().getTimezoneOffset() / 60;
+    const timezoneString = timezoneOffset >= 0 ? `UTC+${timezoneOffset}` : `UTC${timezoneOffset}`;
+    console.log(`using timezone: ${localTimezone} (${timezoneString})`);
+    
     // Check if sample data already exists
     const existingFlashSale = await redisService.get('flashsale:sample-sale-1');
     
     if (!existingFlashSale) {
-      // Create a sample flash sale that starts 1 minute from now (GMT+7)
+      // Create a sample flash sale that starts 1 minute from now (using local timezone)
       const now = new Date();
       
-      // Create dates in GMT+7 timezone (Asia/Bangkok, Asia/Jakarta, Asia/Ho_Chi_Minh)
-      const nowInGMT7 = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-      
-      const startTime = new Date(nowInGMT7.getTime() + 60 * 1000); // 1 minute from now in GMT+7
-      const endTime = new Date(nowInGMT7.getTime() + 60 * 60 * 1000); // 1 hour from now in GMT+7
+      // Use local machine timezone - no timezone conversion needed
+      const startTime = new Date(now.getTime() + 60 * 1000); // 1 minute from now in local time
+      const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now in local time
 
       await flashSaleService.createFlashSale({
-        productName: 'Limited Edition Gaming Headset',
+        productName: 'LIMITED EDITION ITEM',
         totalStock: 100,
         startTime,
         endTime,
         maxPurchasePerUser: 1
       });
       
+      // Get local timezone information
+      const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const timezoneOffset = -new Date().getTimezoneOffset() / 60; // Convert minutes to hours
+      const timezoneString = timezoneOffset >= 0 ? `UTC+${timezoneOffset}` : `UTC${timezoneOffset}`;
       console.log('Sample flash sale created successfully');
-      console.log(`Sale starts at: ${startTime.toISOString()} (GMT+7: ${startTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })})`);
-      console.log(`Sale ends at: ${endTime.toISOString()} (GMT+7: ${endTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })})`);
     }
   } catch (error) {
     console.error('Error initializing sample data:', error);
   }
 }
-
-// Schedule a cron job to update flash sale statuses every minute
-cron.schedule('* * * * *', async () => {
-  // This would update statuses in a real implementation
-  // For now, status is calculated on-demand
-});
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
@@ -87,7 +87,7 @@ process.on('SIGINT', async () => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Flash Sale Server running on port ${PORT}`);
+  console.log(`running on port ${PORT}`);
   initializeSampleData();
 });
 

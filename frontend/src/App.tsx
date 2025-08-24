@@ -3,9 +3,6 @@ import { flashSaleApi } from './api';
 import { FlashSaleStatus, UserPurchaseStatus } from './types';
 import './App.css';
 
-// Sample flash sale ID - in a real app this would come from a list or URL parameter
-const FLASH_SALE_ID = 'b666cfd3-39af-4598-9132-64d676a0f79e';
-
 function App() {
   const [flashSaleStatus, setFlashSaleStatus] = useState<FlashSaleStatus | null>(null);
   const [userPurchaseStatus, setUserPurchaseStatus] = useState<UserPurchaseStatus | null>(null);
@@ -17,7 +14,7 @@ function App() {
   // Fetch flash sale status
   const fetchFlashSaleStatus = async () => {
     try {
-      const status = await flashSaleApi.getFlashSaleStatus(FLASH_SALE_ID);
+      const status = await flashSaleApi.getLatestActiveFlashSale();
       setFlashSaleStatus(status);
     } catch (error) {
       console.error('Error fetching flash sale status:', error);
@@ -27,10 +24,10 @@ function App() {
 
   // Fetch user purchase status
   const fetchUserPurchaseStatus = async () => {
-    if (!userId) return;
+    if (!userId || !flashSaleStatus?.id) return;
     
     try {
-      const status = await flashSaleApi.getUserPurchaseStatus(userId, FLASH_SALE_ID);
+      const status = await flashSaleApi.getUserPurchaseStatus(userId, flashSaleStatus.id);
       setUserPurchaseStatus(status);
     } catch (error) {
       console.error('Error fetching user purchase status:', error);
@@ -44,12 +41,17 @@ function App() {
       return;
     }
 
+    if (!flashSaleStatus?.id) {
+      setError('No active flash sale available');
+      return;
+    }
+
     setLoading(true);
     setMessage('');
     setError('');
 
     try {
-      const result = await flashSaleApi.attemptPurchase(userId, FLASH_SALE_ID);
+      const result = await flashSaleApi.attemptPurchase(userId, flashSaleStatus.id);
       
       if (result.success) {
         setMessage(result.message);
@@ -94,13 +96,14 @@ function App() {
 
   useEffect(() => {
     fetchFlashSaleStatus();
-    const interval = setInterval(fetchFlashSaleStatus, 1000); // Update every second
+    const interval = setInterval(fetchFlashSaleStatus, 60000); // update every minute
     return () => clearInterval(interval);
   }, []);
 
+  // watch for purchase status change everytime the username is changed
   useEffect(() => {
     fetchUserPurchaseStatus();
-  }, [userId]);
+  }, [userId, flashSaleStatus]);
 
   if (!flashSaleStatus) {
     return (
@@ -116,7 +119,7 @@ function App() {
   return (
     <div className="app">
       <div className="container">
-        <h1>⚡ Flash Sale System</h1>
+        <h1>Flash Sale System</h1>
         
         <div className="flash-sale-card">
           <div className="product-info">
@@ -161,6 +164,7 @@ function App() {
               />
             </div>
 
+            {/* validate if user already purchased */}
             {userPurchaseStatus?.hasPurchased ? (
               <div className="purchase-status success">
                 ✅ You have already purchased this item!
@@ -174,7 +178,7 @@ function App() {
                 onClick={handlePurchase}
                 disabled={loading || flashSaleStatus.status !== 'active'}
               >
-                {loading ? 'Processing...' : '🛒 Buy Now'}
+                {loading ? 'Processing...' : 'Buy Now'}
               </button>
             )}
 

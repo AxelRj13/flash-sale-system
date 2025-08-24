@@ -13,8 +13,6 @@ export class FlashSaleService {
     const id = uuidv4();
     const now = new Date();
     let status: FlashSale['status'];
-    console.log(`create start ${flashSale.startTime}`);
-    console.log(`create end ${flashSale.endTime}`);
     if (now < flashSale.startTime) {
       status = 'upcoming';
     } else if (now >= flashSale.startTime && now <= flashSale.endTime) {
@@ -22,8 +20,6 @@ export class FlashSaleService {
     } else {
       status = 'ended';
     }
-
-    console.log(status);
 
     const newFlashSale: FlashSale = {
       ...flashSale,
@@ -53,6 +49,9 @@ export class FlashSaleService {
     
     const flashSale: FlashSale = JSON.parse(data);
     
+    flashSale.startTime = new Date(flashSale.startTime);
+    flashSale.endTime = new Date(flashSale.endTime);
+
     // Update remaining stock from Redis stock counter
     const stockData = await this.redisService.get(`stock:${id}`);
     if (stockData) {
@@ -82,8 +81,10 @@ export class FlashSaleService {
 
     if (flashSale.status === 'upcoming') {
       status.timeUntilStart = Math.max(0, flashSale.startTime.getTime() - now.getTime());
+      console.log(`time until start : ${status.timeUntilStart}`);
     } else if (flashSale.status === 'active') {
       status.timeUntilEnd = Math.max(0, flashSale.endTime.getTime() - now.getTime());
+      console.log(`time until end: ${status.timeUntilEnd}`);
     }
 
     return status;
@@ -198,6 +199,18 @@ export class FlashSaleService {
     }
   }
 
+  async getLatestActiveFlashSale(): Promise<FlashSale | null> {
+    const flashSales = await this.getAllFlashSales();
+    const now = new Date();
+
+    // Find the latest active flash sale
+    const latestActive = flashSales
+      .filter(sale => sale.status === 'active')
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
+
+    return latestActive || null;
+  }
+
   private calculateStatus(flashSale: FlashSale): FlashSale['status'] {
     const now = new Date();
 
@@ -249,24 +262,50 @@ export class FlashSaleService {
     }
   }
 
-  // Public method to delete a flash sale completely
+  // to delete a flash sale completely
   async deleteFlashSale(flashSaleId: string): Promise<boolean> {
     try {
-      // Remove flash sale data
       await this.redisService.del(`flashsale:${flashSaleId}`);
-      
-      // Remove stock counter
       await this.redisService.del(`stock:${flashSaleId}`);
-      
-      // Remove from index
       await this.removeFlashSaleFromIndex(flashSaleId);
-      
-      // Note: This doesn't clean up purchase records for simplicity
-      // In production, you might want to handle this differently
-      
       return true;
     } catch (error) {
       console.error('Error deleting flash sale:', error);
+      return false;
+    }
+  }
+
+  // to delete only the expired flash sale
+  async deleteExpiredFlashSale(): Promise<boolean> {
+    try {
+      const flashSales = await this.getAllFlashSales();
+      const now = new Date();
+      let deletedCount = 0;
+      
+      for (const sale of flashSales) {
+        const endTime = new Date(sale.endTime);
+        
+        console.log(`======Checking flash sale ${sale.id}======`);
+        console.log(`End time: ${endTime.toISOString()}`);
+        console.log(`Now: ${now.toISOString()}`);
+        console.log(`Is expired: ${endTime < now}`);
+        
+        if (endTime < now) {
+          console.log(`Deleting expired flash sale ${sale.id}`);
+          const deleted = await this.deleteFlashSale(sale.id);
+          if (deleted) {
+            deletedCount++;
+            console.log(`Successfully deleted expired flash sale ${sale.id}`);
+          } else {
+            console.error(`Failed to delete flash sale ${sale.id}`);
+          }
+        }
+      }
+      
+      console.log(`Deleted ${deletedCount} expired flash sales`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting expired flash sales:', error);
       return false;
     }
   }

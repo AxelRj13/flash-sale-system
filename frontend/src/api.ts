@@ -20,5 +20,10 @@ export const flashSaleApi = {
   getUserPurchaseStatus: async (userId: string, flashSaleId: string): Promise<UserPurchaseStatus> => {
     const response = await axios.get(`${API_BASE_URL}/flashsale/user/${userId}/purchase/${flashSaleId}`);
     return response.data;
+  },
+
+  getLatestActiveFlashSale: async (): Promise<FlashSaleStatus | null> => {
+    const response = await axios.get(`${API_BASE_URL}/flashsale/getLatestActiveFlashSale`);
+    return response.data;
   }
 };

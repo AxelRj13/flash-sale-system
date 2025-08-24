@@ -244,7 +244,7 @@ This project is licensed under the ISC License - see the LICENSE file for detail
 ## Demo Configuration
 
 The system automatically creates a sample flash sale for testing:
-- **Product**: Limited Edition Gaming Headset
+- **Product**: X
 - **Stock**: 100 items
 - **Duration**: 1 hour from startup
 - **Start**: 1 minute after server startup

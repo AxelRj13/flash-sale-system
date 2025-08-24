@@ -25,5 +25,8 @@ router.get('/status/:id', flashSaleController.getFlashSaleStatus);
 router.post('/purchase', purchaseRateLimit, flashSaleController.attemptPurchase);
 router.get('/user/:userId/purchase/:flashSaleId', flashSaleController.getUserPurchaseStatus);
 router.get('/all', flashSaleController.getAllFlashSales);
+router.post('/delete', flashSaleController.deleteFlashSale);
+router.post('/deleteExpiredFlashSale', flashSaleController.deleteExpiredFlashSale);
+router.get('/getLatestActiveFlashSale', flashSaleController.getLatestActiveFlashSale);
 
 export { router as flashSaleRoutes, redisService };

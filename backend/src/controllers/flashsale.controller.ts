@@ -89,4 +89,54 @@ export class FlashSaleController {
       res.status(500).json({ error: 'Internal server error' });
     }
   };
+
+  deleteFlashSale = async(req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.body;
+
+      if (!id) {
+        res.status(400).json({ error: 'Flash sale ID is required' });
+        return;
+      }
+
+      const result = await this.flashSaleService.deleteFlashSale(id);
+
+      if (result) {
+        res.json({ message: 'Flash sale deleted successfully' });
+      } else {
+        res.status(404).json({ error: 'Flash sale not found' });
+      }
+    } catch (error) {
+      console.error('Error deleting flash sale:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+
+  deleteExpiredFlashSale = async(req: Request, res: Response): Promise<void> => {
+    try {
+      const result = await this.flashSaleService.deleteExpiredFlashSale();
+      if (result) {
+        res.json({ message: 'Expired flash sale deleted successfully' });
+      } else {
+        res.status(404).json({ error: 'Flash sale not found' });
+      }
+    } catch (error) {
+      console.error('Error deleting expired flash sale:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+
+  getLatestActiveFlashSale = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const flashSale = await this.flashSaleService.getLatestActiveFlashSale();
+      if (!flashSale) {
+        res.status(404).json({ error: 'No active flash sale found' });
+        return;
+      }
+      res.json(flashSale);
+    } catch (error) {
+      console.error('Error getting latest active flash sale:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };
 }
