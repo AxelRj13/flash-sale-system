@@ -105,6 +105,8 @@ The application will be available at:
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001
 
+Postman Collection can be downloaded here to test out the backend functions: https://drive.google.com/file/d/11m-GbWySEVMlqiT7-MKt9H-RGdlsKGMT/view?usp=sharing
+
 ## System Architecture
 
 ### High-Level Flow
