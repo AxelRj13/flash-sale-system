@@ -159,6 +159,16 @@ function App() {
                 type="text"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent form submission if in a form
+                    const inputElement = e.currentTarget; // Store reference before async operation
+                    handlePurchase(); // Trigger the buy now action
+                    setTimeout(() => {
+                      inputElement.focus(); // Refocus the input after purchase
+                    }, 100);
+                  }
+                }}
                 placeholder="Enter your username"
                 disabled={loading}
               />

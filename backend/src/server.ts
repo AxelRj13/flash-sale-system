@@ -43,31 +43,37 @@ async function initializeSampleData() {
     const timezoneString = timezoneOffset >= 0 ? `UTC+${timezoneOffset}` : `UTC${timezoneOffset}`;
     console.log(`using timezone: ${localTimezone} (${timezoneString})`);
     
-    // Check if sample data already exists
-    const existingFlashSale = await redisService.get('flashsale:sample-sale-1');
-    
-    if (!existingFlashSale) {
-      // Create a sample flash sale that starts 1 minute from now (using local timezone)
-      const now = new Date();
-      
-      // Use local machine timezone - no timezone conversion needed
-      const startTime = new Date(now.getTime() + 60 * 1000); // 1 minute from now in local time
-      const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now in local time
-
-      await flashSaleService.createFlashSale({
-        productName: 'LIMITED EDITION ITEM',
-        totalStock: 100,
-        startTime,
-        endTime,
-        maxPurchasePerUser: 1
-      });
-      
-      // Get local timezone information
-      const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const timezoneOffset = -new Date().getTimezoneOffset() / 60; // Convert minutes to hours
-      const timezoneString = timezoneOffset >= 0 ? `UTC+${timezoneOffset}` : `UTC${timezoneOffset}`;
-      console.log('Sample flash sale created successfully');
+    // Delete all existing flash sales before creating a new one
+    try {
+      const existingFlashSales = await flashSaleService.getAllFlashSales();
+      if (existingFlashSales.length > 0) {
+        console.log(`Deleting ${existingFlashSales.length} existing flash sales...`);
+        for (const flashSale of existingFlashSales) {
+          await flashSaleService.deleteFlashSale(flashSale.id);
+          console.log(`Deleted flash sale: ${flashSale.id} (${flashSale.productName})`);
+        }
+        console.log('All existing flash sales deleted successfully');
+      }
+    } catch (deleteError) {
+      console.error('Error deleting existing flash sales:', deleteError);
     }
+    
+    // Create new flash sale
+    const now = new Date();
+    
+    // Use local machine timezone - no timezone conversion needed
+    const startTime = new Date(now.getTime());
+    const endTime = new Date(now.getTime() + 60 * 60 * 1000);
+
+    const newFlashSale = await flashSaleService.createFlashSale({
+      productName: 'LIMITED EDITION ITEM',
+      totalStock: 50,
+      startTime,
+      endTime,
+      maxPurchasePerUser: 1 // currently, changing this value won't affect anything. One user only allowed to purchase 1 product
+    });
+    
+    console.log(`New flash sale created successfully: ${newFlashSale.id} (${newFlashSale.productName})`);
   } catch (error) {
     console.error('Error initializing sample data:', error);
   }

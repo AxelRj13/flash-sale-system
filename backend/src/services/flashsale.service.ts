@@ -105,7 +105,7 @@ export class FlashSaleService {
       return {
         success: false,
         message: flashSale.status === 'upcoming' ? 'Sale has not started yet' : 
-                 flashSale.status === 'ended' ? 'Sale has ended' : 'Sale is sold out'
+                 flashSale.status === 'ended' ? 'Sale has ended' : 'SOLD OUT'
       };
     }
 
