@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import { flashSaleRoutes, redisService } from './routes/flashsale.routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { FlashSaleService } from './services/flashsale.service';
-import cron from 'node-cron';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -67,7 +66,7 @@ async function initializeSampleData() {
 
     const newFlashSale = await flashSaleService.createFlashSale({
       productName: 'LIMITED EDITION ITEM',
-      totalStock: 10000, // this can be changed as needed (e.g. to load test)
+      totalStock: 100, // this can be changed as needed (e.g. for load test)
       startTime,
       endTime,
       maxPurchasePerUser: 1 // currently, changing this value won't affect anything. One user only allowed to purchase 1 product

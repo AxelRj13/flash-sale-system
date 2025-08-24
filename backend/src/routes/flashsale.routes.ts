@@ -13,7 +13,6 @@ const purchaseRateLimit = rateLimit({
   legacyHeaders: false,
   // Add user-based rate limiting key
   keyGenerator: (req) => {
-    // Use both IP and user ID if available for more granular control
     const userId = req.body?.userId || 'anonymous';
     return `${req.ip}-${userId}`;
   }
@@ -28,7 +27,6 @@ const generalRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// Create services and controller
 const redisService = new RedisService();
 const flashSaleService = new FlashSaleService(redisService);
 const flashSaleController = new FlashSaleController(flashSaleService);
